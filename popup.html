@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Zillow Scraper</title>
+
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500&display=swap" rel="stylesheet">
+   
+    <link rel="stylesheet" href="style.css">
+ 
+</head>
+<body>
+  <div class="header">
+    <img src="assets/zillow-seeklogo-128.png" alt="Zillow Icon" width="30" height="30">
+    <h1>Zillow Scraper</h1>
+  </div>
+  <div class="sidebar">
+    <div class="menu-item" id="home">
+      <img src="assets/home-icon.png"  width="20" height="20">
+    </div>
+    <div class="menu-item" id="settings">
+      <img src="assets/settings-icon.png"  width="20" height="20">
+    </div>
+  </div>
+  <div class="content">
+    <button id="startScraping">Start Scraping</button>
+    <button id="stopScraping">Stop Scraping</button>
+    <div class="middle-message">
+        Go to  <a href="https://www.zillow.com/homes/for_rent" target="_blank">  Zillow.com</a>
+    </div>
+    <div id="status"></div>
+  </div>
+  <div class="settings">
+    <div class="values">
+        <span id="range1">
+            0
+        </span>
+        <span> &dash; </span>
+        <span id="range2">
+            12
+        </span>
+    </div>
+    <!-- Slider container -->
+    <div class="slider-track"></div>
+    <input type="range" min="0" max="12" value="3" id="slider-1" oninput="slideOne()">
+    <input type="range" min="0" max="12" value="8" id="slider-2" oninput="slideTwo()">
+    <span id="desc">
+        Random Interval between the pages for data (seconds)
+    </span>
+    <div id="slider-range"></div>
+  </div>
+  <script src="popup.js"></script>
+</body>
+</html>

@@ -1,0 +1,39 @@
+{
+    "manifest_version": 3,
+    "name": "Zillow Scraper",
+    "version": "1.0",
+    "description": "A Chrome extension to scrape rental property data from Zillow.com.",
+    "host_permissions": ["*://*/*"],
+    "permissions": [
+        "tabs",
+        "alarms",
+        "activeTab",
+        "declarativeContent",
+        "storage",
+        "webNavigation",
+        "scripting"
+    ],
+    "background": {
+        "service_worker": "background.js"
+    },
+    "action": {
+        "default_popup": "popup.html"
+    },
+    "icons": {
+        "16": "assets/zillow-seeklogo-16.png",
+        "48": "assets/zillow-seeklogo-48.png",
+        "128": "assets/zillow-seeklogo-128.png"
+    },
+    "content_scripts": [
+        {
+            "matches": ["<all_urls>"],
+            "js": ["content.js"]
+        }
+    ],
+    "web_accessible_resources": [
+        {
+            "resources": ["extractor.js"],
+            "matches": ["<all_urls>"]
+        }
+    ]
+}
