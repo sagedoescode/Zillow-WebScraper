@@ -1,5 +1,37 @@
 // POPUP.JS
 document.addEventListener('DOMContentLoaded', function() {
+    document.getElementById('DownloadData').addEventListener('click', downloadCSV);
+    console.log("Downloading data..")
+});
+
+function downloadCSV() {
+    // Retrieve the data from Chrome's local storage
+    chrome.storage.local.get('extractedData', function(result) {
+        if (result.extractedData) {
+            const csvContent = convertArrayToCSV(result.extractedData);
+            // Create a downloadable link and trigger the download
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.setAttribute('href', url);
+            link.setAttribute('download', 'extracted_data.csv');
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        } else {
+            console.log('No data found in Chrome storage.');
+        }
+    });
+}
+
+// Function to convert array of objects to CSV
+function convertArrayToCSV(array) {
+    const header = Object.keys(array[0]).join(',');
+    const rows = array.map(obj => Object.values(obj).join(','));
+    return `${header}\n${rows.join('\n')}`;
+}
+document.addEventListener('DOMContentLoaded', function() {
     // Hide the settings container and show the content container
     document.querySelector('.settings').style.display = 'none';
     document.querySelector('.content').style.display = 'flex';

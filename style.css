@@ -97,11 +97,25 @@ body {
         font-weight: 500;
         font-size: 12px;
     }
+    #DownloadData{
+        background-color: #25c23a;
+        color: #ffffff;
+        border: none;
+        padding: 10px 20px;
+        margin-top: 20px;
+        cursor: pointer;
+        border-radius: 5px;
+        font-weight: 500;
+        font-size: 12px;
+    }
     #startScraping:hover{
         background-color: #1e3fa9;
     }
     #stopScraping:hover {
         background-color: #a91e1e;
+    }
+    #DownloadData:hover {
+        background-color: #2a9b1c;
     }
   .settings {
     display: none;

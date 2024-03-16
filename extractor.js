@@ -58,7 +58,7 @@ function extractData() {
 
             // The city might consist of more than one word
             const city = cityStateZipParts.slice(-1)[0];
-            const state = cityStateZipParts.slice(-1)[0];
+            const state = cityStateZipParts.slice(-2, -1)[0];
             const zipCode = cityStateZipParts.slice(-1)[0];
 
             extractedData.push({ city: city });
