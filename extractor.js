@@ -1,88 +1,111 @@
-
 /// EXTRACTOR.JS
 
-function waitForElements(selectors, callback) {
-    const observer = new MutationObserver((mutations, observer) => {
-        // Check if all selectors are present in the document
-        if (selectors.every(selector => document.querySelector(selector))) {
+async function waitForElement(selector, timeout = 3000) {
+    return new Promise((resolve, reject) => {
+        const timer = setTimeout(() => {
             observer.disconnect();
-            callback();
-        }
-    });
+            reject(
+                new Error(
+                    `Timeout: Elemento "${selector}" não encontrado após ${timeout}ms`
+                )
+            );
+        }, timeout);
 
-    observer.observe(document.body, {
-        childList: true,
-        subtree: true
+        if (document.querySelector(selector)) {
+            clearTimeout(timer);
+            return resolve(document.querySelector(selector));
+        }
+
+        const observer = new MutationObserver((mutations) => {
+            if (document.querySelector(selector)) {
+                clearTimeout(timer);
+                observer.disconnect();
+                resolve(document.querySelector(selector));
+            }
+        });
+
+        observer.observe(document.body, {
+            childList: true,
+            subtree: true,
+        });
     });
 }
-let extractedData = [];
 
-function extractData() {
+async function extractData() {
+    await waitForElement('div[data-testid="data-column"]');
+    const dataView = await waitForElement('div[data-testid="data-view"]');
+
+    const h2Elements = dataView.querySelectorAll("h2");
+
+    let targetH2 = null;
+    for (const h2 of h2Elements) {
+        if (h2.innerText.toLowerCase().includes("overview")) {
+            targetH2 = h2;
+            break;
+        }
+    }
+
+    if (targetH2) {
+        const h2OffsetTop = targetH2.offsetTop;
+        dataView.scrollTop = h2OffsetTop;
+    }
+
+    const h4Elements = dataView.querySelectorAll("h4");
+
+    let targetH4 = null;
+    for (const h4 of h4Elements) {
+        if (h4.innerText.toLowerCase().includes("overview")) {
+            targetH4 = h4;
+            break;
+        }
+    }
+
+    if (targetH4) {
+        const h4OffsetTop = targetH4.offsetTop;
+        dataView.scrollTop = h4OffsetTop;
+    }
+
+    await waitForElement('div[class="ds-listing-agent-header"]');
+    await waitForElement('div[class="ds-listing-agent-container"]');
+    await waitForElement('ul[class="ds-listing-agent-info"]');
+
     console.log("Extracting...");
     const tabData = {};
 
-    tabData.url = window.location.href;
-    let listedByElement = document.querySelector('.ds-listing-agent-header');
-    console.log(listedByElement)
-    if (listedByElement) {
-        extractedData.push({ listedBy: listedByElement.textContent.trim()});
-    }
-    // Query the agent name
-    let agentNameElement = document.querySelector('.ds-listing-agent-display-name');
-    console.log(agentNameElement)
-    if (agentNameElement) {
-        extractedData.push({ agentName: agentNameElement.textContent.trim() });
-    }
+    const buildingAddress = document.querySelector(
+        'h2[data-test-id="bdp-building-address"]'
+    ).innerHTML;
 
-    // Query the business name
-    let businessNameElement = document.querySelector('.ds-listing-agent-business-name');
-    if (businessNameElement) {
-        extractedData.push({ businessName: businessNameElement.textContent.trim() });
-    }
+    const [address, city, stateZip] = buildingAddress.split(",");
+    const [state, zipcode] = stateZip
+        .split(" ")
+        .filter((string) => string !== "");
 
-    // Query the phone number
-    let phoneNumberElement = document.querySelector('.ds-listing-agent-info-text');
-    if (phoneNumberElement) {
-        extractedData.push({ phoneNumber: phoneNumberElement.textContent.trim() });
-    }
-    // Query the full address
-    let addressElement = document.querySelector('h1.Text-c11n-8-84-3__sc-aiai24-0.hrfydd');
-    if (addressElement) {
-        const fullAddress = addressElement.textContent.trim();
-        const addressParts = fullAddress.split(',');
+    tabData["address"] = address.trim();
+    tabData["city"] = city.trim();
+    tabData["state"] = state.trim();
+    tabData["zipcode"] = zipcode.trim();
 
-        if (addressParts.length > 1) {
-            extractedData.push({ address: addressParts[0].trim() });
-            const cityStateZipParts = addressParts[1].trim().split(' ');
+    const listingAgent = document.querySelector(
+        'div[class="ds-listing-agent-header"]'
+    ).innerHTML;
 
+    const agentName = document.querySelector(
+        'span[class="ds-listing-agent-business-name"]'
+    ).innerHTML;
 
-            // The city might consist of more than one word
-            const city = cityStateZipParts.slice(-1)[0];
-            const state = cityStateZipParts.slice(-2, -1)[0];
-            const zipCode = cityStateZipParts.slice(-1)[0];
+    tabData["listedBy"] = decodeHtmlEntities(listingAgent);
+    tabData["name"] = decodeHtmlEntities(agentName);
 
-            extractedData.push({ city: city });
-            extractedData.push({ state: state });
-            extractedData.push({ zipCode: zipCode });
-            
-        }
-    }
-
-
-    // Query the price
-    let priceElement = document.querySelector('span[data-testid="price"]');
-    if (priceElement) {
-        tabData.price = priceElement.textContent.trim();
-    }
-
-    // Since tabData contains the URL and price, we add it to extractedData as well
-    extractedData.push(tabData);
-
-    console.log("Data extracted:", extractedData);
-    chrome.runtime.sendMessage({ action: 'extractedData', tabId: chrome.devtools.inspectedWindow.tabId, data: extractedData }, () => {
-        // After sending the data, request to close the tab
-        chrome.runtime.sendMessage({ action: 'closeTab' });
-    });
+    return tabData;
 }
-// Use waitForElement to wait for the .ds-listing-agent-display-name element to appear
-waitForElements(['.ds-listing-agent-display-name', 'h1.Text-c11n-8-84-3__sc-aiai24-0.hrfydd'], extractData);
+
+function decodeHtmlEntities(html) {
+    if (!html) return "";
+
+    var txt = document.createElement("textarea");
+    txt.innerHTML = html;
+    return txt.value;
+}
+
+extractData();

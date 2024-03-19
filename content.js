@@ -1,64 +1,45 @@
 /// CONTENT.JS
 let isScraping = false;
 
-chrome.runtime.onMessage.addListener(function (message, sender, sendResponse) {
-    if (message.action === 'startScraping') {
+chrome.runtime.onMessage.addListener(function (message) {
+    if (message.action === "startScraping") {
         console.log("Received startScraping message");
         isScraping = true;
-        scrollToBottom(() => waitForElements('article[data-test="property-card"]', scrapeData));
-    } else if (message.action === 'stopScraping') {
+
+        startScraping();
+    } else if (message.action === "stopScraping") {
         isScraping = false;
         console.log("Received stopScraping message");
     }
 });
 
-function scrollToBottom(callback) {
-    let lastHeight = document.body.scrollHeight, newHeight;
-    const stepDistance = 100; // The number of pixels to scroll on each step.
-    const stepDelay = 20; // The delay in milliseconds between each scroll step.
+function getItems() {
+    const itemsContainer = document.querySelector("#grid-search-results");
+    const list = itemsContainer.querySelector("ul");
+    const items = list.querySelectorAll('article[data-test="property-card"]');
 
-    function step() {
-        window.scrollBy(0, stepDistance); // Scroll down a set distance
-        newHeight = document.body.scrollHeight;
-
-        if (window.innerHeight + window.scrollY >= newHeight) {
-            if (newHeight !== lastHeight) {
-                lastHeight = newHeight;
-                setTimeout(step, stepDelay); // Wait for the specified delay before scrolling again
-            } else {
-                console.log('Reached the bottom and no new content is loading.');
-                callback(); // Execute the callback function once no new content is detected
-            }
-        } else {
-            setTimeout(step, stepDelay); // If not at the bottom, continue scrolling
-        }
-    }
-
-    step(); // Start the scrolling process
+    return items;
 }
 
-function waitForElements(selector, callback) {
-    if (!isScraping) return;
+async function slowScrollToBottom(total = 0) {
+    const items = getItems();
 
-    console.log("Waiting for elements...");
-    const observer = new MutationObserver((mutations, me) => {
-        if (!isScraping) {
-            me.disconnect();
-            return;
-        }
+    if (total === items.length) {
+        return;
+    }
 
-        const elements = document.querySelectorAll(selector);
-        console.log(`Found ${elements.length} elements.`);
-        if (elements.length > 0) {
-            me.disconnect(); // Stop observing
-            callback(elements);
-        }
-    });
+    items[items.length - 2].scrollIntoView({ behavior: "smooth" });
+    await new Promise((resolve) => setTimeout(resolve, 1200));
 
-    observer.observe(document, {
-        childList: true,
-        subtree: true
-    });
+    await slowScrollToBottom(items.length);
+}
+
+async function startScraping() {
+    await slowScrollToBottom();
+
+    const items = getItems();
+
+    scrapeData(items);
 }
 
 function scrapeData(elements) {
@@ -68,17 +49,19 @@ function scrapeData(elements) {
         let extractedData = []; // Initialize an array to hold the extracted data
         let hrefs = [];
 
-        elements.forEach(element => {
-            console.log(`Current article content: ${element.outerHTML}`);
-            const link = element.querySelector('a[property-card-link]');
+        elements.forEach((element) => {
+            // console.log(`Current article content: ${element.outerHTML}`);
+            const link = element.querySelector("a[property-card-link]");
             if (link) {
                 console.log(`Found link: ${link.href}`);
                 // Push the scraped data into the array
                 extractedData.push({ link: link.href });
                 hrefs.push(link.href); // Push the link to the hrefs array
             } else {
-                console.log("Attempting to find any 'a' element within the article...");
-                const anyLink = element.querySelector('a');
+                console.log(
+                    "Attempting to find any 'a' element within the article..."
+                );
+                const anyLink = element.querySelector("a");
                 if (anyLink) {
                     console.log(`Found 'a' element: ${anyLink.outerHTML}`);
                     // Push the scraped data into the array
@@ -92,18 +75,13 @@ function scrapeData(elements) {
 
         // Send the hrefs to the background script to open links
         if (hrefs.length > 0) {
-            chrome.runtime.sendMessage({ action: 'openLinks', hrefs: hrefs, openInactive: true });
+            chrome.runtime.sendMessage({
+                action: "openLink",
+                hrefs: hrefs,
+            });
         } else {
             console.log("No links found to open.");
         }
-
-        // Send the extracted data to the background script
-        chrome.runtime.sendMessage({ action: 'scrapedData', data: extractedData }, () => {
-            console.log("Scraped data sent to background script.");
-        });
-        // In scrapeData function
-        chrome.runtime.sendMessage({ action: 'allScrapingDone' });
-
     } else {
         console.log("No articles found.");
     }
