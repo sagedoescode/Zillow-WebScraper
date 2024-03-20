@@ -1,12 +1,4 @@
 /// BACKGROUND.JS
-let allScrapedData = [];
-let openTabsCount = 0;
-
-// Add this function to convert the data object to a CSV-compatible array
-function convertDataToCSV(data) {
-    return data.map((tabData) => Object.values(tabData).join(",")).join("\n");
-}
-
 function startScraping(sendResponse) {
     chrome.tabs.query(
         { active: true, currentWindow: true },
@@ -39,6 +31,7 @@ function startScraping(sendResponse) {
 
 async function openLinks(message, sendResponse) {
     const links = message.hrefs;
+    const data = [];
 
     for (const link of links) {
         const newTab = await chrome.tabs.create({ url: link, active: true });
@@ -50,12 +43,12 @@ async function openLinks(message, sendResponse) {
             });
 
             if (response[0].result) {
-                allScrapedData.push({
+                data.push({
                     ...response[0].result,
                     url: link,
                 });
+                chrome.tabs.remove(newTab.id);
             }
-            chrome.tabs.remove(newTab.id);
         } catch (error) {
             console.error("Error injecting script:", error);
         }
@@ -65,9 +58,7 @@ async function openLinks(message, sendResponse) {
         message: `Tabs opened and extractor injected.`,
     });
 
-    scrapedData();
-
-    return true;
+    scrapedData(data);
 }
 
 function stopScraping(sendResponse) {
@@ -98,12 +89,11 @@ function stopScraping(sendResponse) {
     // Handling extracted data from content scripts
 }
 
-function scrapedData() {
-    console.log("All scraped data:", allScrapedData);
-    chrome.storage.local.set({ extractedData: allScrapedData }, function () {
+function scrapedData(data) {
+    console.log("Dados:", data);
+    chrome.storage.local.set({ extractedData: data }, function () {
         console.log("Dados salvos com sucesso!");
     });
-    allScrapedData = [];
 }
 
 function handleScraping(message, sender, sendResponse) {
