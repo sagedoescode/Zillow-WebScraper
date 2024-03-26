@@ -11,7 +11,10 @@
         "declarativeContent",
         "storage",
         "webNavigation",
-        "scripting"
+        "scripting",
+        "browsingData",
+        "cookies",
+        "<all_urls>"
     ],
     "background": {
         "service_worker": "background.js"

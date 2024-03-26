@@ -1,41 +1,43 @@
 /// BACKGROUND.JS
-function startScraping(sendResponse) {
-    chrome.tabs.query(
-        { active: true, currentWindow: true },
-        async function (tabs) {
-            if (tabs.length === 0) {
-                console.error("No active tab found.");
-                sendResponse({ message: "Error: No active tab found." });
-                return;
-            }
-            const activeTab = tabs[0];
-            if (!activeTab.id) {
-                console.error("Active tab ID is undefined.");
-                sendResponse({
-                    message: "Error: Active tab ID is undefined.",
-                });
-                return;
-            }
+let scrapingWindowId = null;
 
-            await chrome.tabs.sendMessage(activeTab.id, {
-                action: "startScraping",
-            });
-            await sendResponse({
-                message: "Scraping started on tab " + activeTab.id,
-            });
+function startScraping(sendResponse) {
+    chrome.tabs.query({ active: true, currentWindow: true }, async function (tabs) {
+        if (tabs.length === 0) {
+            console.error("No active tab found.");
+            sendResponse({ message: "Error: No active tab found." });
+            return;
         }
+        const activeTab = tabs[0];
+        scrapingWindowId = activeTab.windowId;
+        if (!activeTab.id) {
+            console.error("Active tab ID is undefined.");
+            sendResponse({
+                message: "Error: Active tab ID is undefined.",
+            });
+            return;
+        }
+
+        await chrome.tabs.sendMessage(activeTab.id, {
+            action: "startScraping",
+        });
+        await sendResponse({
+            message: "Scraping started on tab " + activeTab.id,
+        });
+
+    }
     );
 
     return true;
 }
 
+
 async function openLinks(message, sendResponse) {
     const links = message.hrefs;
     const data = [];
-
+    
     for (const link of links) {
-        const newTab = await chrome.tabs.create({ url: link, active: true });
-
+        const newTab = await chrome.tabs.create({ windowId: scrapingWindowId, url: link, active: true });
         try {
             const response = await chrome.scripting.executeScript({
                 target: { tabId: newTab.id },
@@ -47,10 +49,12 @@ async function openLinks(message, sendResponse) {
                     ...response[0].result,
                     url: link,
                 });
-                chrome.tabs.remove(newTab.id);
             }
         } catch (error) {
             console.error("Error injecting script:", error);
+        } finally {
+            // Close the tab after processing, whether it succeeded or failed
+            chrome.tabs.remove(newTab.id);
         }
     }
 

@@ -122,8 +122,8 @@ async function extractData() {
         tabData["name"] = decodeHtmlEntities(agentName);
     } catch (error) {
         console.error("error on finding agent infos");
-        tabData["listedBy"] = "";
-        tabData["name"] = "";
+        tabData["listedBy"] = "Oops";
+        tabData["name"] = "Oops";
     }
 
     return tabData;
