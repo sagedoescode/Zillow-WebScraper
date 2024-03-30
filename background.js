@@ -1,5 +1,20 @@
 /// BACKGROUND.JS
 let scrapingWindowId = null;
+function clearZillowData(callback) {
+    const oneWeekAgo = (new Date()).getTime() - (1000 * 60 * 60 * 24 * 7);
+
+    // Clear cache
+    chrome.browsingData.remove({
+        "since": oneWeekAgo,
+        "origins": ["https://www.zillow.com"]
+    }, {
+        "cache": true,
+        "cookies": true
+    }, () => {
+        console.log("Cleared cache and cookies for Zillow.");
+        if (callback) callback();
+    });
+}
 
 function startScraping(sendResponse) {
     chrome.tabs.query({ active: true, currentWindow: true }, async function (tabs) {
@@ -17,7 +32,7 @@ function startScraping(sendResponse) {
             });
             return;
         }
-
+        await new Promise(resolve => clearZillowData(resolve));
         await chrome.tabs.sendMessage(activeTab.id, {
             action: "startScraping",
         });
@@ -37,6 +52,7 @@ async function openLinks(message, sendResponse) {
     const data = [];
     
     for (const link of links) {
+        
         const newTab = await chrome.tabs.create({ windowId: scrapingWindowId, url: link, active: true });
         try {
             const response = await chrome.scripting.executeScript({
@@ -102,6 +118,7 @@ function scrapedData(data) {
 
 function handleScraping(message, sender, sendResponse) {
     if (message.action === "startScraping") {
+
         console.log("start");
         startScraping(sendResponse);
     }

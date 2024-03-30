@@ -27,7 +27,7 @@ function getItems() {
     return list.querySelectorAll('article[data-test="property-card"]');
 }
 
-function scrapeData(elements) {
+async function scrapeData(elements) {
     let extractedData = [];
     let hrefs = [];
 
@@ -40,17 +40,23 @@ function scrapeData(elements) {
     });
 
     if (hrefs.length > 0) {
-        chrome.runtime.sendMessage({ action: "openLink", hrefs: hrefs });
+        // Wait for all links to be processed before proceeding
+        await new Promise((resolve) => {
+            chrome.runtime.sendMessage({ action: "openLink", hrefs: hrefs }, () => {
+                resolve();
+            });
+        });
     }
 }
 
 
 
-async function startScraping() {
 
+async function startScraping() {
     await slowScrollToBottom();
     const items = getItems();
-    scrapeData(items);
+    await scrapeData(items); // Make sure to await here
+
     const nextPage = await navigateToNextPage();
     if (nextPage) {
         // Wait for the next page to load before starting to scrape again
@@ -59,7 +65,6 @@ async function startScraping() {
         console.log("Scraping completed.");
         // Send a message back to the background script if needed
     }
-
 }
 
 async function navigateToNextPage() {

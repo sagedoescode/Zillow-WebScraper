@@ -1,6 +1,6 @@
 /// EXTRACTOR.JS
 
-async function waitForElement(selector, timeout = 3000) {
+async function waitForElement(selector, timeout = 9000) {
     return new Promise((resolve, reject) => {
         const timer = setTimeout(() => {
             observer.disconnect();
